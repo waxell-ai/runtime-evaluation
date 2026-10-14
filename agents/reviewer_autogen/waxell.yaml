@@ -1,0 +1,31 @@
+# reviewer_autogen — the reviewer declared in AutoGen terms.
+#
+# Declarative on the hosted runtime (see ../../FRAMEWORKS.md): the runtime
+# reads system_prompt + model and runs the governed tool loop against the
+# things domain. Same reviewer prompt as every other agent here.
+#
+#   wax -p eval push
+#   wax -p eval signals fire review_autogen --payload '{"thing_id": "thing-003"}' --stream
+
+version: 1
+
+defaults:
+  owner: evaluator@example.com
+  tags: [runtime-evaluation, reviewer]
+
+agents:
+  - name: reviewer_autogen
+    framework: autogen
+    version: 1.0.0
+    display_name: Reviewer (AutoGen)
+    description: Reviews one thing through the things domain; AutoGen-shaped manifest.
+    model: anthropic:claude-sonnet-4-6
+    domains: [things]
+    system_prompt_file: ../reviewer_prompt.md
+    signals:
+      - name: review_autogen
+        source_type: api
+        description: Review one thing.
+        schema:
+          thing_id: {type: string, description: The thing to review.}
+    timeout_seconds: 300

@@ -1,0 +1,44 @@
+# reviewer_crewai — the reviewer declared in CrewAI terms.
+#
+# On the hosted runtime a CrewAI manifest runs DECLARATIVELY: the runtime
+# reads the first agent's role/goal/backstory and the first task, and drives
+# one governed model ↔ tool loop against the things domain. See
+# ../../FRAMEWORKS.md for exactly what is honoured.
+#
+#   wax -p eval push
+#   wax -p eval signals fire review_crewai --payload '{"thing_id": "thing-002"}' --stream
+
+version: 1
+
+defaults:
+  owner: evaluator@example.com
+  tags: [runtime-evaluation, reviewer]
+
+agents:
+  - name: reviewer_crewai
+    framework: crewai
+    version: 1.0.0
+    display_name: Reviewer (CrewAI)
+    description: Reviews one thing through the things domain; CrewAI-shaped manifest.
+    domains: [things]
+    agents:
+      - role: Work item reviewer
+        goal: Review one work item precisely and stage publication for a human.
+        backstory: >-
+          You review work items for a small team. You are careful and brief and
+          you never publish anything yourself. Follow the reviewer rules exactly.
+        model: anthropic:claude-sonnet-4-6
+    tasks:
+      - description: >-
+          Load the thing with things.get, write a review with things.set_review
+          (review_json as a JSON string: summary, findings, recommendation,
+          confidence), leave one hand-off note with things.add_note, and if the
+          recommendation is publish call things.publish — awaiting_approval is
+          success. Finish with a one-line summary.
+    signals:
+      - name: review_crewai
+        source_type: api
+        description: Review one thing.
+        schema:
+          thing_id: {type: string, description: The thing to review.}
+    timeout_seconds: 300

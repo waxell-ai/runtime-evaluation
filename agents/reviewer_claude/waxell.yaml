@@ -1,0 +1,38 @@
+# reviewer_claude — the reviewer on the Claude Agent SDK.
+#
+# The SDK runs in its own container per run; Waxell governs it from outside
+# (policy check before every tool call, budget + turn caps, the LLM proxy).
+# `domains: [things]` turns every action of the things contract into a tool
+# named things__<action>; each call reaches YOUR domain server with the
+# end-user token and the AXID header.
+#
+#   wax -p eval push
+#   wax -p eval signals fire review_claude --payload '{"thing_id": "thing-001"}' --stream
+
+version: 1
+
+defaults:
+  owner: evaluator@example.com
+  tags: [runtime-evaluation, reviewer]
+
+agents:
+  - name: reviewer_claude
+    framework: claude_agent_sdk
+    version: 1.0.0
+    display_name: Reviewer (Claude Agent SDK)
+    description: Reviews one thing through the things domain and stages publication for a human.
+    model: anthropic:claude-sonnet-4-6
+    tools: []                          # domain actions are the only tools it needs
+    domains: [things]
+    system_prompt_file: ../reviewer_prompt.md
+    signals:
+      - name: review_claude
+        source_type: api
+        description: Review one thing.
+        schema:
+          thing_id:
+            type: string
+            description: The thing to review (thing-001, thing-002, thing-003).
+    max_turns: 12
+    max_budget_usd: 1.0
+    timeout_seconds: 300

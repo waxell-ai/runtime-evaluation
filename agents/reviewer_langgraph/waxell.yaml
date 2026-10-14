@@ -1,0 +1,41 @@
+# reviewer_langgraph — YOUR LangGraph code, running in its own container.
+#
+# `source` + `entrypoint` make this a CODE agent: `wax push` uploads src/,
+# the runtime builds an image from `dependencies`, and each run executes
+# graph.py's compiled graph inside it. Model calls go through Waxell's
+# governed proxy (ANTHROPIC_BASE_URL is set in the container), so tokens,
+# cost and policy checks land on the run page with no instrumentation here.
+#
+#   wax -p eval push                       # starts the image build
+#   wax -p eval agents builds reviewer_langgraph
+#   wax -p eval signals fire review_langgraph --payload '{"thing_id": "thing-001", "body": "..."}' --stream
+
+version: 1
+
+defaults:
+  owner: evaluator@example.com
+  tags: [runtime-evaluation, reviewer, code]
+
+agents:
+  - name: reviewer_langgraph
+    framework: langgraph
+    version: 1.0.0
+    display_name: Reviewer (LangGraph, your code)
+    description: A compiled StateGraph that reviews a work item body; runs isolated from source.
+    source: ./src
+    entrypoint: graph:app
+    dependencies:
+      pip:
+        - "langgraph>=0.2,<2"
+        - "langchain-anthropic>=0.3"
+        - "langchain-core>=0.3"
+      python: "3.11"
+    signals:
+      - name: review_langgraph
+        source_type: api
+        description: Review a work item from its body.
+        schema:
+          thing_id: {type: string, description: Id, echoed in the result.}
+          title: {type: string}
+          body: {type: string, description: The text to review.}
+    timeout_seconds: 300
