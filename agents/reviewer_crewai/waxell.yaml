@@ -1,0 +1,84 @@
+# reviewer_crewai — the reviewer declared in CrewAI terms.
+#
+# On the hosted runtime a CrewAI manifest runs DECLARATIVELY: the runtime
+# reads the first agent's role/goal/backstory and the first task, and drives
+# one governed model ↔ tool loop against the things domain. See
+# ../../FRAMEWORKS.md for exactly what is honoured.
+#
+#   wax -p eval push
+#   wax -p eval signals fire review_crewai --payload '{"thing_id": "thing-002"}' --stream
+
+version: 1
+
+defaults:
+  owner: evaluator@example.com
+  tags: [runtime-evaluation, reviewer]
+
+agents:
+  - name: reviewer_crewai
+    framework: crewai
+    version: 1.0.0
+    display_name: Reviewer (CrewAI)
+    description: Reviews one thing through the things domain; CrewAI-shaped manifest.
+    domains: [things]
+    # Memory — four slots, four tiers, used without being told to in the payload.
+    # The runtime exposes each slot as tools (memory__recall__<slot>,
+    # memory__remember__<slot>, memory__search__<slot> on semantic slots,
+    # graph__recall__<slot> / graph__remember_*__<slot> on graph slots) and the
+    # prompt says when to use them. Same tools on every framework.
+    memory:
+      recent_reviews:                   # episodic: what this agent reviewed lately
+        tier: episodic
+        type: list
+        scope: tenant_id
+        ttl: 30d
+        max_items: 20
+        description: The last reviews this agent wrote — thing, recommendation, one-line reason.
+      style_rules:                      # semantic: house rules it learned, found by MEANING
+        tier: semantic
+        # Embedded by the bundled open-source model (bge-small-en-v1.5) unless the
+        # workspace has a provider instance advertising embeddings, or you pin one:
+        #   embedding_provider: openai_main      # a `wax provider` instance id
+        #   embedding_model: text-embedding-3-large
+        scope: tenant_id
+        description: House rules for publishable things, learned from hand-off notes.
+      things:                           # graph "things": shared with every reviewer, read + write
+        tier: graph
+        graph_name: things
+        graph_access: read_write
+        description: What was reviewed, by whom, for whom; what cites what.
+      team:                             # graph "team": owners of each thing, READ ONLY here
+        tier: graph
+        graph_name: team
+        graph_access: read
+        description: Who owns which thing. Written by team_seed; reviewers may only read it.
+    agents:
+      - role: Work item reviewer
+        goal: Review one work item precisely and stage publication for a human.
+        backstory: >-
+          You review work items for a small team. You are careful and brief and
+          you never publish anything yourself. Follow the reviewer rules exactly.
+        model: anthropic:claude-sonnet-4-6
+    tasks:
+      - description: >-
+          Graph keys are bare ids (thing-001, u_42), never prefixed. Before the
+          review: memory__recall__recent_reviews; memory__search__style_rules with
+          a query naming the kind of thing (apply any rule that fits, cite it);
+          graph__recall__team with around=[thing_id], hops=1 — the owns edge names
+          the owner. Then things.get; things.set_review (review_json as a JSON
+          string: summary, findings, recommendation, confidence); one
+          things.add_note addressed to the owner; if the recommendation is publish
+          call things.publish — awaiting_approval is success. After: record
+          memory__remember__recent_reviews {thing_id, recommendation, reason}; one
+          memory__remember__style_rules fact if the review taught a reusable rule;
+          graph__remember_batch__things with the thing (key thing_id, kind thing),
+          the person you acted for (key sub_user_id, kind person), the edge
+          thing_id reviewed_by person, and thing_id cites <other id> for every
+          other thing the body references. Finish with a one-line summary.
+    signals:
+      - name: review_crewai
+        source_type: api
+        description: Review one thing.
+        schema:
+          thing_id: {type: string, description: The thing to review.}
+    timeout_seconds: 300

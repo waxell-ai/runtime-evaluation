@@ -1,0 +1,69 @@
+# reviewer_claude — the reviewer on the Claude Agent SDK.
+#
+# The SDK runs in its own container per run; Waxell governs it from outside
+# (policy check before every tool call, budget + turn caps, the LLM proxy).
+# `domains: [things]` turns every action of the things contract into a tool
+# named things__<action>; each call reaches YOUR domain server with the
+# end-user token and the AXID header.
+#
+#   wax -p eval push
+#   wax -p eval signals fire review_claude --payload '{"thing_id": "thing-001"}' --stream
+
+version: 1
+
+defaults:
+  owner: evaluator@example.com
+  tags: [runtime-evaluation, reviewer]
+
+agents:
+  - name: reviewer_claude
+    framework: claude_agent_sdk
+    version: 1.0.0
+    display_name: Reviewer (Claude Agent SDK)
+    description: Reviews one thing through the things domain and stages publication for a human.
+    model: anthropic:claude-sonnet-4-6
+    tools: []                          # domain actions are the only tools it needs
+    domains: [things]
+    # Memory — four slots, four tiers, used without being told to in the payload.
+    # The runtime exposes each slot as tools (memory__recall__<slot>,
+    # memory__remember__<slot>, memory__search__<slot> on semantic slots,
+    # graph__recall__<slot> / graph__remember_*__<slot> on graph slots) and the
+    # prompt says when to use them. Same tools on every framework.
+    memory:
+      recent_reviews:                   # episodic: what this agent reviewed lately
+        tier: episodic
+        type: list
+        scope: tenant_id
+        ttl: 30d
+        max_items: 20
+        description: The last reviews this agent wrote — thing, recommendation, one-line reason.
+      style_rules:                      # semantic: house rules it learned, found by MEANING
+        tier: semantic
+        # Embedded by the bundled open-source model (bge-small-en-v1.5) unless the
+        # workspace has a provider instance advertising embeddings, or you pin one:
+        #   embedding_provider: openai_main      # a `wax provider` instance id
+        #   embedding_model: text-embedding-3-large
+        scope: tenant_id
+        description: House rules for publishable things, learned from hand-off notes.
+      things:                           # graph "things": shared with every reviewer, read + write
+        tier: graph
+        graph_name: things
+        graph_access: read_write
+        description: What was reviewed, by whom, for whom; what cites what.
+      team:                             # graph "team": owners of each thing, READ ONLY here
+        tier: graph
+        graph_name: team
+        graph_access: read
+        description: Who owns which thing. Written by team_seed; reviewers may only read it.
+    system_prompt_file: ../reviewer_prompt.md
+    signals:
+      - name: review_claude
+        source_type: api
+        description: Review one thing.
+        schema:
+          thing_id:
+            type: string
+            description: The thing to review (thing-001, thing-002, thing-003).
+    max_turns: 12
+    max_budget_usd: 1.0
+    timeout_seconds: 300

@@ -1,0 +1,36 @@
+# reviewer_pydantic_ai — YOUR pydantic_ai Agent, running in its own container.
+#
+# Same mechanism as reviewer_langgraph: `source` + `entrypoint` → code agent,
+# built from `dependencies`, executed from src/agent.py per run. The runtime
+# passes the payload's `prompt` (or `input` / `message`) to `run_sync` and
+# takes `.output` as the result.
+#
+#   wax -p eval push
+#   wax -p eval agents builds reviewer_pydantic_ai
+#   wax -p eval signals fire review_pydantic_ai --payload '{"prompt": "Title: ...\nBody: ..."}' --stream
+
+version: 1
+
+defaults:
+  owner: evaluator@example.com
+  tags: [runtime-evaluation, reviewer, code]
+
+agents:
+  - name: reviewer_pydantic_ai
+    framework: pydantic_ai
+    version: 1.0.0
+    display_name: Reviewer (pydantic_ai, your code)
+    description: A pydantic_ai Agent with a typed Review output; runs isolated from source.
+    source: ./src
+    entrypoint: agent:reviewer
+    dependencies:
+      pip:
+        - "pydantic-ai-slim[anthropic]>=0.4"
+      python: "3.11"
+    signals:
+      - name: review_pydantic_ai
+        source_type: api
+        description: Review a work item from a prompt.
+        schema:
+          prompt: {type: string, description: Title and body of the thing to review.}
+    timeout_seconds: 300

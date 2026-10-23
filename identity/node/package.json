@@ -1,0 +1,11 @@
+{
+  "name": "waxell-identity-verify",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Verify Waxell end-user tokens and agent identity (AXID) headers with node:crypto only.",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node --test"
+  }
+}

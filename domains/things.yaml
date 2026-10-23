@@ -1,0 +1,112 @@
+# Domain contract: things — the evaluation's system of record.
+#
+# A domain is how an agent reaches YOUR system. Waxell registers this contract
+# in your workspace; every action becomes a tool named things__<action> for
+# agents that declare `domains: [things]`; each call is an HTTP POST from the
+# runtime to your endpoint with the headers your server verifies.
+#
+# push_domains.sh substitutes the two placeholders below and pushes a temp
+# copy — the real values never land in git.
+#
+# Field reference: https://waxell.ai/docs/runtime/domains
+
+name: things
+description: >-
+  Runtime evaluation things. Load a work item, attach an agent review and a
+  hand-off note, and stage publication (gated).
+
+# Send the end user on every call. With this on and a run that carries
+# `_sub_user_identity`, each request gets X-Waxell-Sub-User-Token (Ed25519,
+# verify against your workspace JWKS) and X-Waxell-Sub-User-Id/-Email.
+# The AXID header (X-Waxell-AXID) is sent regardless of this flag when the
+# workspace has agent identity enabled.
+per_user_auth: true
+
+# How the runtime authenticates TO your server. The shared secret is the
+# transport credential; identity is proven by the signed headers above.
+auth:
+  type: bearer
+  config:
+    header: Authorization
+    prefix: Bearer
+    token: __EVAL_DOMAIN_SHARED_SECRET__
+
+endpoint:
+  base_url: __EVAL_DOMAIN_BASE_URL__        # https://<your-tunnel>.trycloudflare.com/api
+  path_template: /domains/{domain}/{action}
+
+request:
+  timeout_seconds: 30
+  retry_config:
+    max_attempts: 2
+    initial_backoff_s: 1
+    backoff_factor: 2
+
+actions:
+  - name: get
+    description: Load one thing with its status, review and notes.
+    request_schema:
+      type: object
+      properties:
+        thing_id: {type: string, description: The thing id.}
+      required: [thing_id]
+    response_schema: {type: object}
+    data_classification: internal       # internal | confidential | pii_basic | …
+    human_in_the_loop: false
+    rate_limit_per_minute: 120
+
+  - name: list
+    description: Enumerate things, optionally filtered by status.
+    request_schema:
+      type: object
+      properties:
+        status: {type: string, description: Optional status filter.}
+        limit: {type: integer, description: Max rows (default 100).}
+    response_schema: {type: object}
+    data_classification: internal
+    human_in_the_loop: false
+    rate_limit_per_minute: 60
+
+  - name: set_review
+    description: >-
+      Attach the agent's review (summary, findings, recommendation, confidence).
+      Pass the review as a JSON string in review_json.
+    request_schema:
+      type: object
+      properties:
+        thing_id: {type: string}
+        review: {type: object, description: The review object (or use review_json).}
+        review_json: {type: string, description: JSON string of the review (reliable path).}
+      required: [thing_id]
+    response_schema: {type: object}
+    data_classification: internal
+    human_in_the_loop: false
+    rate_limit_per_minute: 60
+
+  - name: add_note
+    description: Leave a hand-off note for the humans working this thing.
+    request_schema:
+      type: object
+      properties:
+        thing_id: {type: string}
+        text: {type: string, description: The note.}
+      required: [thing_id, text]
+    response_schema: {type: object}
+    data_classification: internal
+    human_in_the_loop: false
+    rate_limit_per_minute: 60
+
+  - name: publish
+    description: >-
+      GATED. Stage publication for human approval. Returns awaiting_approval —
+      that is success; a person decides.
+    request_schema:
+      type: object
+      properties:
+        thing_id: {type: string}
+        summary: {type: string, description: One line shown to the approver.}
+      required: [thing_id]
+    response_schema: {type: object}
+    data_classification: internal
+    human_in_the_loop: true            # recorded on every call to this action
+    rate_limit_per_minute: 30

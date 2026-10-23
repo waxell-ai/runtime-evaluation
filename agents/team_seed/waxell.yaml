@@ -1,0 +1,50 @@
+# team_seed — writes the "team" graph once; the reviewers can only READ it.
+#
+# A graph is (workspace, graph name). Any number of graphs; each agent names
+# the ones it uses and the grant it holds. The reviewers hold read_write on
+# "things" and read on "team"; this agent holds write on "team" and nothing
+# else. Fire it once (step 3); afterwards a reviewer's note is addressed to
+# the owner the graph names, and a reviewer that tries to write "team" is
+# refused — by the grant, before the backend is reached.
+#
+#   wax -p eval push
+#   wax -p eval signals fire team_seed --payload '{}' --stream
+
+version: 1
+
+defaults:
+  owner: evaluator@example.com
+  tags: [runtime-evaluation, memory]
+
+agents:
+  - name: team_seed
+    framework: claude_agent_sdk
+    version: 1.0.0
+    display_name: Team graph seed
+    description: Records who owns which thing in the team graph. Run once.
+    model: anthropic:claude-sonnet-4-6
+    tools: []
+    memory:
+      team:
+        tier: graph
+        graph_name: team
+        graph_access: write
+        description: Who owns which thing.
+    system_prompt: |
+      You maintain the team graph. Call graph__remember_batch__team exactly once
+      with these nodes and edges, then stop and report the counts.
+
+      Nodes (kind person): u_42 "Ada Lovelace" (role reviewer),
+      u_7 "Grace Hopper" (role release manager), u_19 "Alan Turing" (role support lead).
+      Nodes (kind thing): thing-001 "Release notes 2.4", thing-002 "Customer email draft",
+      thing-003 "Empty draft", thing-004 "Status page notice: scheduled maintenance".
+      Edges (relationship owns): u_7 owns thing-001, u_19 owns thing-002,
+      u_42 owns thing-003, u_7 owns thing-004.
+    signals:
+      - name: team_seed
+        source_type: api
+        description: Seed the team graph.
+        schema: {}
+    max_turns: 4
+    max_budget_usd: 0.25
+    timeout_seconds: 120

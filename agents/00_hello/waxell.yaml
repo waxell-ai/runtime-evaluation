@@ -1,0 +1,38 @@
+# 00_hello — the first thing to push. No domains, no dependencies, no code.
+# Proves: push → fire → governed run → streamed events → result, in a minute.
+#
+#   wax -p eval push
+#   wax -p eval signals fire hello_run --payload '{"prompt": "Say hello to the evaluator in one sentence."}' --stream
+#
+# Field reference: https://waxell.ai/docs/runtime/waxell-yaml-reference
+
+version: 1
+
+defaults:
+  owner: evaluator@example.com        # <- your email
+  tags: [runtime-evaluation]
+
+agents:
+  - name: hello
+    framework: claude_agent_sdk
+    version: 1.0.0                    # bump on every re-push
+    display_name: Hello
+    description: Answers a prompt in one short paragraph.
+    model: anthropic:claude-sonnet-4-6
+    # Claude Code built-in tools. None needed for a greeting; Read/Grep are
+    # the default if the list is omitted, so say "none" explicitly.
+    tools: []
+    system_prompt: |
+      You are a concise assistant. Answer the prompt directly in at most three
+      sentences.
+    signals:
+      - name: hello_run
+        source_type: webhook
+        description: Run the agent on a prompt.
+        schema:
+          prompt:
+            type: string
+            description: What you want the agent to do
+    max_turns: 3
+    max_budget_usd: 0.25
+    timeout_seconds: 120

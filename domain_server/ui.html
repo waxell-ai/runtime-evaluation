@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your system of record</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#10161d; --line:rgba(255,255,255,.08); --text:#e6edf3; --dim:rgba(230,237,243,.55);
+    --mint:#52feca; --sky:#7dd3fc; --amber:#fdba74; --rose:#fb7185; --violet:#c4b5fd;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:22px 24px 10px;flex-wrap:wrap}
+  .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--mint);opacity:.85}
+  h1{margin:4px 0 2px;font-size:22px;font-weight:600}
+  .sub{color:var(--dim);font-size:13px;max-width:720px}
+  .pills{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .pill{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:6px 10px;font-size:12px;color:var(--dim)}
+  .pill b{color:var(--text);font-weight:600}
+  .pill.ok b{color:var(--mint)} .pill.bad b{color:var(--rose)}
+  main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;padding:8px 24px 32px}
+  @media (max-width:980px){main{grid-template-columns:1fr}}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+  section h2{margin:0 0 10px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between;align-items:center}
+  section h2 span{letter-spacing:0;text-transform:none;font-weight:400}
+  .call{border-top:1px solid var(--line);padding:10px 0;display:grid;grid-template-columns:72px 1fr auto;gap:10px;align-items:start}
+  .call:first-of-type{border-top:0}
+  .call.new{animation:flash 1.6s ease-out}
+  @keyframes flash{from{background:rgba(82,254,202,.12)}to{background:transparent}}
+  .t{font-family:var(--mono);font-size:11px;color:var(--dim);padding-top:2px}
+  .act{font-family:var(--mono);font-size:13px}
+  .act b{color:var(--sky);font-weight:600}
+  .meta{font-size:12px;color:var(--dim);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
+  .tag{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11px;font-family:var(--mono)}
+  .tag.ok{border-color:rgba(82,254,202,.35);color:var(--mint)}
+  .tag.warn{border-color:rgba(253,186,116,.4);color:var(--amber)}
+  .tag.bad{border-color:rgba(251,113,133,.4);color:var(--rose)}
+  .tag.axid{border-color:rgba(196,181,253,.4);color:var(--violet)}
+  .tag.blocked{border-color:rgba(251,113,133,.5);color:var(--rose);background:rgba(251,113,133,.08)}
+  a.run{font-size:11px;color:var(--sky);text-decoration:none;white-space:nowrap;padding-top:2px}
+  a.run:hover{text-decoration:underline}
+  .thing{border-top:1px solid var(--line);padding:12px 0}
+  .thing:first-of-type{border-top:0}
+  .thing .id{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .thing .title{font-weight:600;margin:2px 0 4px}
+  .thing .body{color:var(--dim);font-size:12.5px}
+  .rev{margin-top:8px;border-left:2px solid var(--line);padding:4px 10px}
+  .rev .r{display:inline-flex;gap:6px;align-items:center;font-size:12px}
+  .rec{font-family:var(--mono);font-size:11px;border-radius:6px;padding:1px 7px;border:1px solid var(--line)}
+  .rec.publish{color:var(--mint);border-color:rgba(82,254,202,.4)}
+  .rec.revise{color:var(--amber);border-color:rgba(253,186,116,.4)}
+  .rec.cancel{color:var(--rose);border-color:rgba(251,113,133,.4)}
+  .rev ul{margin:6px 0 0 16px;padding:0;color:var(--dim);font-size:12.5px}
+  .note{margin-top:8px;font-size:12.5px;background:rgba(125,211,252,.06);border:1px solid rgba(125,211,252,.18);border-radius:8px;padding:7px 10px}
+  .note .by{font-size:11px;color:var(--dim);margin-top:3px;font-family:var(--mono)}
+  .status{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .status.awaiting{color:var(--amber)}
+  .empty{color:var(--dim);font-size:13px;padding:18px 0;text-align:center}
+  .who{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px}
+  .who .k{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.1em}
+  .who .v{font-family:var(--mono);font-size:12px;margin-top:2px}
+  .who .v.mint{color:var(--mint)} .who .v.violet{color:var(--violet)}
+  footer{padding:0 24px 24px;color:var(--dim);font-size:11.5px}
+  footer code{font-family:var(--mono);color:var(--text)}
+  .mono{font-family:var(--mono)}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="eyebrow">Runtime evaluation · your system of record</div>
+    <h1>things</h1>
+    <div class="sub">This is <em>your</em> server. Every row below is a call the Waxell runtime made to it on an agent's behalf: who the agent was, which run, which person it acted for, and whether the signed identity headers verified against your workspace's public keys. The app shows the runtime; this page shows the effect.</div>
+  </div>
+  <div class="pills" id="pills">
+    <div class="pill">calls <b id="p-calls">0</b></div>
+    <div class="pill" id="p-ident">identity verified <b>—</b></div>
+    <div class="pill" id="p-axid">with agent identity <b>—</b></div>
+    <div class="pill" id="p-health">server <b>…</b></div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>Calls <span id="calls-sub">newest first · live</span></h2>
+    <div id="calls"><div class="empty">No calls yet. Fire a reviewer (README step 4) and watch this fill in.</div></div>
+  </section>
+  <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+    <section>
+      <h2>Acting for <span id="who-sub"></span></h2>
+      <div class="who" id="who"><div class="empty" style="padding:6px 0;width:100%">Appears when a run carries an end-user identity (step 7).</div></div>
+    </section>
+    <section>
+      <h2>Things <span id="things-sub"></span></h2>
+      <div id="things"></div>
+    </section>
+  </div>
+</main>
+<footer>
+  Polling <code>/api/calls</code> and <code>/api/things</code> every 2 s · raw JSON at <code>/api/calls</code>, <code>/api/calls/latest</code>, <code>/api/things</code> · verify a header yourself: <code>node identity/node/cli.mjs …</code> (README step 7)
+</footer>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmtT = (ts) => { const d = new Date(ts * 1000); return d.toLocaleTimeString([], {hour12:false}); };
+  let seen = new Set();
+  let appUrl = '';
+  let first = true;
+
+  function runLink(call) {
+    const run = call.axid && call.axid.run && call.axid.run.id;
+    const wf = (call.headers || {})['x-waxell-workflow-id'];
+    const id = run || (wf && /^\d+$/.test(wf) ? wf : null);
+    if (!id) return '';
+    const label = `run ${esc(id)}`;
+    return appUrl ? `<a class="run" href="${esc(appUrl)}/observability/executions/${esc(id)}?tab=logs" target="_blank" rel="noopener">${label} ↗</a>` : `<span class="run">${label}</span>`;
+  }
+
+  function renderCalls(calls) {
+    const el = $('#calls');
+    if (!calls.length) { el.innerHTML = '<div class="empty">No calls yet. Fire a reviewer (README step 4) and watch this fill in.</div>'; return; }
+    const rows = calls.map((c) => {
+      const h = c.headers || {};
+      const agent = h['x-waxell-agent-name'] || '—';
+      const su = c.end_user;
+      const ax = c.axid;
+      const tags = [];
+      if (su) tags.push(`<span class="tag ${c.identity_verified ? 'ok' : 'bad'}">${c.identity_verified ? '✓' : '✗'} end user ${esc(su.sub || su.email || '')}</span>`);
+      else if (h['x-waxell-sub-user-token']) tags.push(`<span class="tag bad">✗ end-user token</span>`);
+      if (ax && ax.sub) tags.push(`<span class="tag axid">✓ AXID ${esc(String(ax.sub).replace(/^axid:/, '').slice(0, 12))}…</span>`);
+      else if (h['x-waxell-axid']) tags.push(`<span class="tag bad">✗ AXID</span>`);
+      else tags.push(`<span class="tag">no AXID header</span>`);
+      if (c.identity_note) tags.push(`<span class="tag warn" title="${esc(c.identity_note)}">note</span>`);
+      const st = c.status;
+      const stTag = st === 'awaiting_approval' ? `<span class="tag warn">awaiting approval</span>` : st && st !== 'ok' && st !== 200 ? `<span class="tag">${esc(st)}</span>` : '';
+      const isNew = !first && !seen.has(c.call_id);
+      const reqS = c.request && Object.keys(c.request).length ? JSON.stringify(c.request) : ''; const req = reqS ? ` <span class="mono" style="color:var(--dim);font-size:11px" title="${esc(reqS)}">${esc(reqS.length > 70 ? reqS.slice(0, 70) + '…' : reqS)}</span>` : '';
+      return `<div class="call${isNew ? ' new' : ''}">
+        <div class="t">${fmtT(c.ts)}</div>
+        <div>
+          <div class="act"><b>things.${esc(c.action)}</b> <span style="color:var(--dim)">by</span> ${esc(agent)}${req}</div>
+          <div class="meta">${tags.join('')}${stTag}</div>
+        </div>
+        ${runLink(c)}
+      </div>`;
+    });
+    el.innerHTML = rows.join('');
+    seen = new Set(calls.map((c) => c.call_id));
+    first = false;
+  }
+
+  function renderWho(calls) {
+    const el = $('#who');
+    const withId = calls.find((c) => c.end_user || (c.axid && c.axid.sub));
+    if (!withId) { $('#who-sub').textContent = ''; return; }
+    const su = withId.end_user || {};
+    const ax = withId.axid || {};
+    const agent = ax.agent || {};
+    const act = ax.act || {};
+    $('#who-sub').textContent = `latest call · ${fmtT(withId.ts)}`;
+    const cells = [];
+    if (su.sub || su.email) cells.push(`<div><div class="k">End user (signed token)</div><div class="v mint">${esc(su.sub || '')} ${esc(su.email || '')}${su.roles && su.roles.length ? ' · ' + esc(su.roles.join(', ')) : ''}</div><div class="v" style="color:var(--dim)">aud ${esc(su.aud || '')} · run ${esc(su.waxell_run_id || '')} · ${su.exp ? (su.exp - Date.now()/1000 > 0 ? 'expires in ' + Math.round(su.exp - Date.now()/1000) + 's' : 'token expired (5 min TTL) — verified while live') : ''}</div></div>`);
+    if (ax.sub) cells.push(`<div><div class="k">Agent identity (AXID)</div><div class="v violet">${esc(agent.name || '')} v${esc(agent.version || '')}</div><div class="v" style="color:var(--dim)">${esc(ax.sub)}</div><div class="v" style="color:var(--dim)">run ${esc((ax.run||{}).id || '')} · acting for ${esc(act.sub || '—')}${act.assurance ? ' (' + esc(act.assurance) + ')' : ''} · scope ${esc((ax.scope||[]).join(', '))}</div></div>`);
+    if (ax.call) cells.push(`<div><div class="k">This call</div><div class="v">${esc(ax.call.domain || '')}/${esc(ax.call.action || '')}</div><div class="v" style="color:var(--dim)">call.id ${esc(String(ax.call.id || '').slice(0, 18))}… · jti ${esc(String(ax.jti || '').slice(0, 10))}… · 60 s token, new per call</div></div>`);
+    el.innerHTML = cells.join('') || '<div class="empty" style="padding:6px 0;width:100%">—</div>';
+  }
+
+  let publishedIds = new Set();
+  function renderThings(things) {
+    const el = $('#things');
+    $('#things-sub').textContent = `${things.length} · reviews land here`;
+    el.innerHTML = things.map((t) => {
+      const r = t.review && t.review.recommendation ? t.review : null;
+      const rec = r && r.recommendation;
+      const rev = r ? `<div class="rev"><div class="r"><span class="rec ${esc(rec)}">${esc(rec)}</span><span style="color:var(--dim)">confidence ${esc(r.confidence)}</span></div><div style="margin-top:4px">${esc(r.summary)}</div>${(r.findings||[]).length ? '<ul>' + r.findings.slice(0,4).map((f) => '<li>' + esc(f) + '</li>').join('') + '</ul>' : ''}</div>` : '';
+      const notes = (t.notes || []).slice(-2).map((n) => `<div class="note">${esc(n.text)}<div class="by">${esc(n.by || 'agent')}${n.axid ? ' · ' + esc(String(n.axid).slice(0, 22)) + '…' : ''}</div></div>`).join('');
+      const st = t.status === 'awaiting_approval' ? '<span class="status awaiting">awaiting approval · a human decides</span>' : `<span class="status">${esc(t.status || '')}</span>`;
+      const by = t.changed_by_axid ? `<div class="status">changed by ${esc(String(t.changed_by_axid).slice(0, 22))}…</div>` : '';
+      // The governance moment (README step 8): the agent recommended publish,
+      // yet no publish call ever reached this server. The runtime refused it
+      // before it left — this page can only show the absence, which is the point.
+      const blocked = rec === 'publish' && t.status !== 'awaiting_approval' && !publishedIds.has(t.thing_id)
+        ? `<div class="note" style="border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.07)"><span class="tag blocked">blocked in the runtime</span> <span style="font-size:12px">the agent recommended <b>publish</b> and would have called <span class="mono">things.publish</span> — that call never reached this server. A policy refused it before it left Waxell; the run ends <span class="mono">policy_blocked</span> (finish reason <span class="mono">policy_blocked_domain</span>).</span></div>`
+        : '';
+      return `<div class="thing"><div class="id">${esc(t.thing_id)} · ${st}</div><div class="title">${esc(t.title)}</div><div class="body">${esc(t.body) || '<em>(empty)</em>'}</div>${rev}${notes}${blocked}${by}</div>`;
+    }).join('');
+  }
+
+  async function tick() {
+    try {
+      const [c, t, h] = await Promise.all([
+        fetch('/api/calls?limit=60').then((r) => r.json()),
+        fetch('/api/things').then((r) => r.json()),
+        fetch('/api/health').then((r) => r.json()),
+      ]);
+      const calls = (c.calls || []).slice().sort((a, b) => b.ts - a.ts);
+      const things = t.things || t;
+      appUrl = h.app_url || '';
+      $('#p-calls').textContent = String(calls.length);
+      const withTok = calls.filter((x) => x.end_user || (x.headers||{})['x-waxell-sub-user-token']);
+      const ok = withTok.filter((x) => x.identity_verified).length;
+      const pi = $('#p-ident'); pi.innerHTML = `identity verified <b>${withTok.length ? ok + '/' + withTok.length : '—'}</b>`; pi.className = 'pill ' + (withTok.length ? (ok === withTok.length ? 'ok' : 'bad') : '');
+      const withAx = calls.filter((x) => x.axid && x.axid.sub).length;
+      const pa = $('#p-axid'); pa.innerHTML = `with agent identity <b>${calls.length ? withAx + '/' + calls.length : '—'}</b>`; pa.className = 'pill ' + (calls.length && withAx === calls.length ? 'ok' : '');
+      const ph = $('#p-health'); ph.innerHTML = `server <b>${h.domain_armed ? 'armed' : 'not armed'} · ${h.identity_verification ? 'verifying' : 'NOT verifying'}</b>`; ph.className = 'pill ' + (h.domain_armed && h.identity_verification ? 'ok' : 'bad');
+      publishedIds = new Set(calls.filter((x) => x.action === 'publish').map((x) => (x.request || {}).thing_id));
+      renderCalls(calls); renderWho(calls); renderThings(things);
+    } catch (e) {
+      $('#p-health').innerHTML = 'server <b>unreachable</b>'; $('#p-health').className = 'pill bad';
+    }
+  }
+  tick(); setInterval(tick, 2000);
+})();
+</script>
+</body>
+</html>
